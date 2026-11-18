@@ -286,10 +286,19 @@ function App() {
       <header className='border-b bg-card'>
         <div className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6'>
           <div>
-            <p className='text-xl font-bold tracking-tight'>Gas Tracker</p>
-            <p className='text-xs text-muted-foreground'>
-              {VEHICLE.name} · {VEHICLE.mpg} MPG estimate
-            </p>
+            <div className='flex items-center gap-3'>
+              <img
+                src='/logo.png'
+                alt=''
+                className='size-16 shrink-0 object-contain'
+              />
+
+              <div className='flex flex-col gap-0.5'>
+                <h1 className='font-title text-5xl tracking-wide sm:text-6xl'>
+                  Gas <span className='text-[#f06479]'>Tracker</span>
+                </h1>
+              </div>
+            </div>
           </div>
           <div className='flex flex-wrap items-center gap-3'>
             <ThemeSwitch />
@@ -312,7 +321,7 @@ function App() {
                 if (value === "Mike" || value === "Mom") setCurrentUser(value);
               }}
             >
-              <SelectTrigger className='w-28 bg-white' aria-label='Acting as'>
+              <SelectTrigger className='w-28 bg-card' aria-label='Acting as'>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -343,7 +352,7 @@ function App() {
           <div className='flex gap-2'>
             <Button
               onClick={() => openEntry("drive", dateKey(new Date()))}
-              className='bg-emerald-700 text-white hover:bg-emerald-800'
+              variant='default'
             >
               + Custom trip
             </Button>
@@ -462,7 +471,7 @@ function App() {
                 }}
               >
                 <SelectTrigger
-                  className='w-44 bg-white'
+                  className='w-44 bg-card'
                   aria-label='Statistics period'
                 >
                   <SelectValue />
@@ -522,7 +531,7 @@ function App() {
               }}
             >
               <SelectTrigger
-                className='w-40 bg-white'
+                className='w-40 bg-card'
                 aria-label='Activity type'
               >
                 <SelectValue />

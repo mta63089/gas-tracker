@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource/pathway-extreme";
+@import "@fontsource-variable/edu-sa-hand/wght.css";
 
 @custom-variant dark
   (&: is(.dark *));
@@ -151,6 +152,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   --font-sans: "Pathway Extreme", sans-serif;
+  --font-title: "Edu SA Hand Variable", cursive;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
