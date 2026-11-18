@@ -282,8 +282,8 @@ function App() {
   }
 
   return (
-    <div className='min-h-screen bg-slate-50 text-slate-950'>
-      <header className='border-b bg-white'>
+    <div className='min-h-screen bg-background text-foreground'>
+      <header className='border-b bg-card'>
         <div className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6'>
           <div>
             <p className='text-xl font-bold tracking-tight'>Gas Tracker</p>
@@ -373,8 +373,8 @@ function App() {
                 className='w-full [--cell-size:clamp(2.1rem,7vw,4.25rem)]'
                 classNames={{
                   root: "w-full",
-                  months: "w-full",
-                  month: "w-full",
+                  months: "relative flex w-full flex-col gap-4",
+                  month: "flex w-full flex-col gap-4",
                   month_grid: "w-full",
                   week: "mt-2 flex w-full",
                   day: "relative w-full flex-1 p-0",
