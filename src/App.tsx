@@ -1,6 +1,3 @@
-import { format, startOfMonth } from "date-fns";
-import { useEffect, useState, type FormEvent } from "react";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +40,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "#components/ui/sheet";
+import { format, startOfMonth } from "date-fns";
+import { useEffect, useState, type FormEvent } from "react";
 
+import { ThemeSwitch } from "#components/theme-switch";
 import { EntryForm, type EditorState } from "./components/entry-form";
 import { PresetManager } from "./components/preset-manager";
 import {
@@ -291,7 +291,8 @@ function App() {
               {VEHICLE.name} · {VEHICLE.mpg} MPG estimate
             </p>
           </div>
-          <div className='flex flex-wrap items-center gap-2'>
+          <div className='flex flex-wrap items-center gap-3'>
+            <ThemeSwitch />
             <Button variant='outline' onClick={() => setPresetsOpen(true)}>
               Trip presets
             </Button>
