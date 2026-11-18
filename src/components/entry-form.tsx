@@ -24,6 +24,7 @@ import {
   MEMBERS,
   VEHICLE,
   currency,
+  estimateTripCost,
   number,
   today,
   type DriveEntry,
@@ -33,23 +34,25 @@ import {
 } from "../lib/tracker";
 
 export type EditorState =
-  | { type: "drive"; entry?: DriveEntry }
-  | { type: "fuel"; entry?: FuelEntry };
+  | { type: "drive"; entry?: DriveEntry; date?: string }
+  | { type: "fuel"; entry?: FuelEntry; date?: string };
 
-type EntryFormProps = {
+type Props = {
   editor: EditorState;
   currentUser: Member;
+  purchases: FuelEntry[];
+  fallbackPrice: number;
   onSave: (entry: Entry) => void;
   onCancel: () => void;
 };
 
-const positiveNumber = (value: string) =>
+const positive = (value: string) =>
   value.trim() !== "" && Number.isFinite(Number(value)) && Number(value) > 0;
 
-const entrySchema = z
+const schema = z
   .object({
     type: z.enum(["drive", "fuel"]),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please select a date."),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Select a valid date."),
     person: z.enum(MEMBERS),
     miles: z.string(),
     purpose: z.string(),
@@ -58,31 +61,29 @@ const entrySchema = z
   })
   .superRefine((data, ctx) => {
     if (data.type === "drive") {
-      if (!positiveNumber(data.miles)) {
+      if (!positive(data.miles)) {
         ctx.addIssue({
           code: "custom",
           path: ["miles"],
           message: "Enter a distance greater than zero.",
         });
       }
-
       if (!data.purpose.trim()) {
         ctx.addIssue({
           code: "custom",
           path: ["purpose"],
-          message: "Please enter a reason for the trip.",
+          message: "Enter a reason for this trip.",
         });
       }
     } else {
-      if (!positiveNumber(data.amount)) {
+      if (!positive(data.amount)) {
         ctx.addIssue({
           code: "custom",
           path: ["amount"],
           message: "Enter an amount greater than zero.",
         });
       }
-
-      if (!positiveNumber(data.pricePerGallon)) {
+      if (!positive(data.pricePerGallon)) {
         ctx.addIssue({
           code: "custom",
           path: ["pricePerGallon"],
@@ -92,9 +93,8 @@ const entrySchema = z
     }
   });
 
-type EntryFormValues = z.infer<typeof entrySchema>;
-
-const TRIP_REASONS = [
+type Values = z.infer<typeof schema>;
+const REASONS = [
   "Groceries",
   "Appointment",
   "Errands",
@@ -106,39 +106,40 @@ const TRIP_REASONS = [
 export function EntryForm({
   editor,
   currentUser,
+  purchases,
+  fallbackPrice,
   onSave,
   onCancel,
-}: EntryFormProps) {
+}: Props) {
   const existing = editor.entry;
+  const drive = existing?.type === "drive" ? existing : undefined;
+  const fuel = existing?.type === "fuel" ? existing : undefined;
 
-  const existingDrive = existing?.type === "drive" ? existing : undefined;
-
-  const existingFuel = existing?.type === "fuel" ? existing : undefined;
-
-  const form = useForm<EntryFormValues>({
-    resolver: zodResolver(entrySchema),
+  const form = useForm<Values>({
+    resolver: zodResolver(schema),
     defaultValues: {
       type: editor.type,
-      date: existing?.date ?? today(),
-      person: existingDrive?.driver ?? existingFuel?.payer ?? currentUser,
-      miles: existingDrive ? String(existingDrive.miles) : "",
-      purpose: existingDrive?.purpose ?? "",
-      amount: existingFuel ? String(existingFuel.amount) : "",
-      pricePerGallon: existingFuel ? String(existingFuel.pricePerGallon) : "",
+      date: existing?.date ?? editor.date ?? today(),
+      person: drive?.driver ?? fuel?.payer ?? currentUser,
+      miles: drive ? String(drive.miles) : "",
+      purpose: drive?.purpose ?? "",
+      amount: fuel ? String(fuel.amount) : "",
+      pricePerGallon: fuel ? String(fuel.pricePerGallon) : "",
     },
   });
 
+  const miles = form.watch("miles");
+  const date = form.watch("date");
   const amount = form.watch("amount");
-  const pricePerGallon = form.watch("pricePerGallon");
+  const price = form.watch("pricePerGallon");
 
+  const estimatedCost = positive(miles)
+    ? estimateTripCost({ date, miles: Number(miles) }, purchases, fallbackPrice)
+    : null;
   const gallons =
-    positiveNumber(amount) && positiveNumber(pricePerGallon)
-      ? Number(amount) / Number(pricePerGallon)
-      : 0;
+    positive(amount) && positive(price) ? Number(amount) / Number(price) : 0;
 
-  const estimatedRange = gallons * VEHICLE.mpg;
-
-  function onSubmit(values: EntryFormValues) {
+  function submit(values: Values) {
     const base = {
       id: existing?.id ?? crypto.randomUUID(),
       date: values.date,
@@ -154,21 +155,19 @@ export function EntryForm({
         miles: Number(values.miles),
         purpose: values.purpose.trim(),
       });
-
-      return;
+    } else {
+      onSave({
+        ...base,
+        type: "fuel",
+        payer: values.person,
+        amount: Number(Number(values.amount).toFixed(2)),
+        pricePerGallon: Number(values.pricePerGallon),
+      });
     }
-
-    onSave({
-      ...base,
-      type: "fuel",
-      payer: values.person,
-      amount: Number(Number(values.amount).toFixed(2)),
-      pricePerGallon: Number(values.pricePerGallon),
-    });
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
+    <form onSubmit={form.handleSubmit(submit)} className='space-y-5'>
       <FieldGroup>
         <Controller
           name='date'
@@ -176,16 +175,13 @@ export function EntryForm({
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor='entry-date'>Date</FieldLabel>
-
               <Input
                 {...field}
                 id='entry-date'
                 type='date'
-                required
                 className='h-11 text-sm'
                 aria-invalid={fieldState.invalid}
               />
-
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
@@ -199,24 +195,20 @@ export function EntryForm({
               <FieldLabel htmlFor='entry-person'>
                 {editor.type === "drive" ? "Who drove?" : "Who paid?"}
               </FieldLabel>
-
               <Select
                 name={field.name}
                 value={field.value}
                 onValueChange={(value) => {
-                  if (value === "Mike" || value === "Mom") {
+                  if (value === "Mike" || value === "Mom")
                     field.onChange(value);
-                  }
                 }}
               >
                 <SelectTrigger
                   id='entry-person'
                   className='h-11 w-full text-sm'
-                  aria-invalid={fieldState.invalid}
                 >
-                  <SelectValue placeholder='Select person' />
+                  <SelectValue />
                 </SelectTrigger>
-
                 <SelectContent>
                   {MEMBERS.map((member) => (
                     <SelectItem key={member} value={member}>
@@ -225,7 +217,6 @@ export function EntryForm({
                   ))}
                 </SelectContent>
               </Select>
-
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
@@ -238,52 +229,44 @@ export function EntryForm({
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='drive-miles'>Miles driven</FieldLabel>
-
+                  <FieldLabel htmlFor='entry-miles'>Miles driven</FieldLabel>
                   <Input
                     {...field}
-                    id='drive-miles'
+                    id='entry-miles'
                     type='number'
                     inputMode='decimal'
                     min='0.1'
                     step='any'
-                    placeholder='e.g. 12.5'
-                    required
+                    placeholder='12.5'
                     className='h-11 text-sm'
                     aria-invalid={fieldState.invalid}
                   />
-
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
                 </Field>
               )}
             />
-
             <Controller
               name='purpose'
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='drive-purpose'>
+                  <FieldLabel htmlFor='entry-purpose'>
                     Reason for trip
                   </FieldLabel>
-
                   <Input
                     {...field}
-                    id='drive-purpose'
+                    id='entry-purpose'
                     placeholder='Where did you go?'
-                    required
                     className='h-11 text-sm'
                     aria-invalid={fieldState.invalid}
                   />
-
                   <FieldDescription>
-                    Or select a common reason:
+                    Or choose a common reason:
                   </FieldDescription>
-
                   <div className='flex flex-wrap gap-2'>
-                    {TRIP_REASONS.map((reason) => (
+                    {REASONS.map((reason) => (
                       <Button
                         key={reason}
                         type='button'
@@ -301,13 +284,23 @@ export function EntryForm({
                       </Button>
                     ))}
                   </div>
-
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
                 </Field>
               )}
             />
+            <div className='rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950'>
+              <p className='text-xs font-medium'>Estimated fuel cost</p>
+              <p className='mt-1 text-2xl font-semibold'>
+                {estimatedCost ? currency(estimatedCost.cost) : "—"}
+              </p>
+              <p className='mt-1 text-xs text-emerald-800'>
+                {estimatedCost
+                  ? `${number(estimatedCost.gallons, 2)} gallons at ${currency(estimatedCost.pricePerGallon)}/gal (${estimatedCost.source === "purchase" ? "recorded price" : "fallback price"})`
+                  : "Enter miles to calculate an estimate."}
+              </p>
+            </div>
           </>
         ) : (
           <>
@@ -316,72 +309,59 @@ export function EntryForm({
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='fuel-amount'>Amount paid ($)</FieldLabel>
-
+                  <FieldLabel htmlFor='entry-amount'>
+                    Amount paid ($)
+                  </FieldLabel>
                   <Input
                     {...field}
-                    id='fuel-amount'
+                    id='entry-amount'
                     type='number'
                     inputMode='decimal'
                     min='0.01'
                     step='0.01'
-                    placeholder='e.g. 35.00'
-                    required
+                    placeholder='35.00'
                     className='h-11 text-sm'
                     aria-invalid={fieldState.invalid}
                   />
-
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
                 </Field>
               )}
             />
-
             <Controller
               name='pricePerGallon'
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='fuel-price'>
+                  <FieldLabel htmlFor='entry-price'>
                     Price per gallon ($)
                   </FieldLabel>
-
                   <Input
                     {...field}
-                    id='fuel-price'
+                    id='entry-price'
                     type='number'
                     inputMode='decimal'
                     min='0.001'
                     step='0.001'
-                    placeholder='e.g. 3.099'
-                    required
+                    placeholder='3.099'
                     className='h-11 text-sm'
                     aria-invalid={fieldState.invalid}
                   />
-
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
                 </Field>
               )}
             />
-
-            <div className='rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950'>
-              <p className='text-sm font-medium'>Estimated fuel purchased</p>
-
-              <p className='mt-2 text-3xl font-semibold'>
+            <div className='rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950'>
+              <p className='text-xs font-medium'>Estimated fuel purchased</p>
+              <p className='mt-1 text-2xl font-semibold'>
                 {number(gallons, 2)} gallons
               </p>
-
-              <p className='mt-2 text-sm'>
-                Approximately <strong>{number(estimatedRange)} miles</strong> of
-                driving range
-              </p>
-
-              <p className='mt-3 text-xs text-emerald-800'>
-                {VEHICLE.mpg} MPG estimate
-                {gallons > 0 && ` · ${currency(Number(amount))} total`}
+              <p className='mt-1 text-xs text-emerald-800'>
+                Approximately {number(gallons * VEHICLE.mpg)} miles of driving
+                range
               </p>
             </div>
           </>
@@ -392,18 +372,16 @@ export function EntryForm({
         <Button
           type='button'
           variant='outline'
-          className='h-11 flex-1 text-sm'
+          className='h-11 flex-1'
           onClick={onCancel}
         >
           Cancel
         </Button>
-
         <Button
           type='submit'
-          disabled={form.formState.isSubmitting}
-          className='h-11 flex-1 bg-emerald-700 text-sm text-white hover:bg-emerald-800'
+          className='h-11 flex-1 bg-emerald-700 text-white hover:bg-emerald-800'
         >
-          {existing ? "Save Changes" : "Save Entry"}
+          {existing ? "Save changes" : "Save entry"}
         </Button>
       </div>
     </form>
