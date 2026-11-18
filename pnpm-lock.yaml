@@ -11,7 +11,16 @@ importers:
       '@base-ui/react':
         specifier: ^1.9.0
         version: 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@fontsource-variable/inter':
+      '@fontsource-variable/pathway-extreme':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/urbanist':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/pathway-extreme':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/urbanist':
         specifier: ^5.3.0
         version: 5.3.0
       '@hookform/resolvers':
@@ -337,8 +346,17 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@fontsource-variable/inter@5.3.0':
-    resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+  '@fontsource-variable/pathway-extreme@5.3.0':
+    resolution: {integrity: sha512-treCsbvUQskbCILn9Aodf9tviO69ijbh6HYdvZYVHltHsXwvHOLi3z7CBW58HsjDULDuxBvXVONsHWOwXaKwHA==}
+
+  '@fontsource-variable/urbanist@5.3.0':
+    resolution: {integrity: sha512-riHbcRgoOhEdCwVw3n3R1JLEwvRD1N9GlXtBcwl/UJ2KabfyDBuryE2Yq10308QJgbXw3F/IFF+VoMuuqwVfIA==}
+
+  '@fontsource/pathway-extreme@5.3.0':
+    resolution: {integrity: sha512-Xqud9biGS+TrssDT/Umd6vrwG6LaNw58FaQm9BeukQzwNcLHyj023/WTk96PBAm3Lfky2yzaNN+ZGAPejgGRYg==}
+
+  '@fontsource/urbanist@5.3.0':
+    resolution: {integrity: sha512-588s006ey+ygDqZtnJ1qehGNzIfNDl49ibAKifeYmU3juExX39LfMuCSkvT4nMktbvc07hg/8zc3qABh8zoxeA==}
 
   '@hookform/resolvers@7.0.6':
     resolution: {integrity: sha512-LSTMwW4tmRWtM7pS5HkSqahi71USbhrmjc9pNHNa7UyYTbKIK/e0G1EAw6xsEnp9GahTjXhunxRJp0Bd8E6NZA==}
@@ -2271,7 +2289,13 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@fontsource-variable/inter@5.3.0': {}
+  '@fontsource-variable/pathway-extreme@5.3.0': {}
+
+  '@fontsource-variable/urbanist@5.3.0': {}
+
+  '@fontsource/pathway-extreme@5.3.0': {}
+
+  '@fontsource/urbanist@5.3.0': {}
 
   '@hookform/resolvers@7.0.6(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(zod@4.6.7)':
     dependencies:
