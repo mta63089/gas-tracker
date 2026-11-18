@@ -36,7 +36,12 @@ import {
   SelectValue,
 } from "#components/ui/select";
 
-import { MEMBERS, number, type Member, type TripPreset } from "../lib/tracker";
+import {
+  MEMBERS,
+  number,
+  type Member,
+  type TripPreset,
+} from "../../lib/tracker";
 
 const presetSchema = z.object({
   name: z.string().trim().min(2, "Enter a name of at least 2 characters."),

@@ -31,7 +31,7 @@ import {
   type Entry,
   type FuelEntry,
   type Member,
-} from "../lib/tracker";
+} from "../../lib/tracker";
 
 export type EditorState =
   | { type: "drive"; entry?: DriveEntry; date?: string }
