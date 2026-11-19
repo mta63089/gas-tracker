@@ -4,7 +4,6 @@ import { dateKey, type FuelEntry, type Member } from "../../lib/tracker";
 import { ActivityHistory } from "./activity-history";
 import { CalendarOverview } from "./calendar-overview";
 import { DaySheet } from "./day-sheet";
-import { LegacyImport } from "./legacy-import";
 import { MemberSummary } from "./member-summary";
 import { PresetManager } from "./preset-manager";
 import {
@@ -93,10 +92,6 @@ export function TrackerDashboard({ member, onSignOut }: Props) {
           </p>
         ) : (
           <>
-            <LegacyImport
-              counts={tracker.legacy}
-              onImport={tracker.importFromBrowser}
-            />
             <CalendarOverview
               month={calendarMonth}
               selectedDate={selectedDate}
