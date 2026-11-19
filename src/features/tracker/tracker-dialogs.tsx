@@ -55,7 +55,7 @@ type SettingsDialogProps = {
   open: boolean;
   fallbackPrice: number;
   onOpenChange: (open: boolean) => void;
-  onSave: (price: number) => void;
+  onSave: (price: number) => Promise<boolean>;
 };
 
 /** Mount only while open, so the draft starts at the latest saved price. */
@@ -63,15 +63,15 @@ export function SettingsDialog({ open, fallbackPrice, onOpenChange, onSave }: Se
   const [draft, setDraft] = useState(String(fallbackPrice));
   const [error, setError] = useState('');
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const price = Number(draft);
     if (!Number.isFinite(price) || price <= 0) {
       setError('Enter a price greater than zero.');
       return;
     }
-    onSave(price);
-    onOpenChange(false);
+    const saved = await onSave(price);
+    if (saved) onOpenChange(false);
   }
 
   return (

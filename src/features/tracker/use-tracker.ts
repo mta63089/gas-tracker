@@ -1,31 +1,44 @@
 import { startOfMonth } from "date-fns";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { type EditorState } from "./entry-form";
+import { supabase } from "../../lib/supabase";
 import {
   dateKey,
-  loadEntries,
-  loadFallbackPrice,
-  loadPresets,
-  saveEntries,
-  saveFallbackPrice,
-  savePresets,
+  DEFAULT_FALLBACK_PRICE,
   type Entry,
   type Member,
   type TripPreset,
 } from "../../lib/tracker";
-import { type ActivityFilter, type Period } from "./selectors";
+import type { EditorState } from "./entry-form";
+import type { ActivityFilter, Period } from "./selectors";
+import {
+  deleteRemoteEntry,
+  deleteRemotePreset,
+  fetchTrackerSnapshot,
+  importLegacyData,
+  legacyImportCounts,
+  saveRemoteEntry,
+  saveRemotePreset,
+  saveRemotePrice,
+} from "./remote-store";
 
-/** Owns the tracker data and UI state. No JSX or presentation logic. */
-export function useTracker() {
-  const [entries, setEntries] = useState<Entry[]>(loadEntries);
-  const [presets, setPresets] = useState<TripPreset[]>(loadPresets);
-  const [fallbackPrice, setFallbackPrice] = useState(loadFallbackPrice);
-  const [currentUser, setCurrentUser] = useState<Member>("Mike");
+function errorMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : "Could not save changes to Supabase.";
+}
 
-  const [calendarMonth, setCalendarMonth] = useState(() =>
-    startOfMonth(new Date()),
-  );
+/** Shared cloud data and local-only UI state. No persistence writes in an effect. */
+export function useTracker(currentUser: Member) {
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [presets, setPresets] = useState<TripPreset[]>([]);
+  const [fallbackPrice, setFallbackPrice] = useState(DEFAULT_FALLBACK_PRICE);
+  const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [legacy, setLegacy] = useState(legacyImportCounts);
+  const requestNumber = useRef(0);
+  const active = useRef(true);
+
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dayOpen, setDayOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState | null>(null);
@@ -35,21 +48,66 @@ export function useTracker() {
   const [period, setPeriod] = useState<Period>("month");
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
 
-  useEffect(() => saveEntries(entries), [entries]);
-  useEffect(() => savePresets(presets), [presets]);
-  useEffect(() => saveFallbackPrice(fallbackPrice), [fallbackPrice]);
+  const refresh = useCallback(async () => {
+    const request = ++requestNumber.current;
+    try {
+      const next = await fetchTrackerSnapshot();
+      if (!active.current || request !== requestNumber.current) return;
+      setEntries(next.entries);
+      setPresets(next.presets);
+      setFallbackPrice(next.fallbackPrice);
+      setError(null);
+      setReady(true);
+      setLoading(false);
+    } catch (cause) {
+      if (active.current && request === requestNumber.current) {
+        setError(errorMessage(cause));
+        setLoading(false);
+      }
+      throw cause;
+    }
+  }, []);
 
-  function saveEntry(entry: Entry) {
-    setEntries((current) =>
-      current.some((item) => item.id === entry.id)
-        ? current.map((item) => (item.id === entry.id ? entry : item))
-        : [...current, entry],
-    );
-    setEditor(null);
+  useEffect(() => {
+    active.current = true;
+    void refresh().catch(() => {});
+
+    // Subscribe to changes from the other device. Refetch instead of applying
+    // individual events so all clients use the same mapping and calculations.
+    const channel = supabase.channel("gas-tracker-data")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tracker_entries" },
+        () => { void refresh().catch(() => {}); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "tracker_presets" },
+        () => { void refresh().catch(() => {}); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "tracker_settings" },
+        () => { void refresh().catch(() => {}); })
+      .subscribe();
+
+    return () => {
+      active.current = false;
+      requestNumber.current++;
+      void supabase.removeChannel(channel);
+    };
+  }, [refresh]);
+
+  async function commit(write: () => Promise<void>): Promise<boolean> {
+    try {
+      setError(null);
+      await write();
+      await refresh();
+      return true;
+    } catch (cause) {
+      if (active.current) setError(errorMessage(cause));
+      return false;
+    }
   }
 
-  function quickAdd(preset: TripPreset) {
-    saveEntry({
+  async function saveEntry(entry: Entry) {
+    if (await commit(() => saveRemoteEntry(entry))) setEditor(null);
+  }
+
+  async function quickAdd(preset: TripPreset) {
+    await commit(() => saveRemoteEntry({
       id: crypto.randomUUID(),
       date: dateKey(selectedDate),
       createdAt: new Date().toISOString(),
@@ -58,8 +116,7 @@ export function useTracker() {
       driver: preset.defaultDriver ?? currentUser,
       miles: preset.miles,
       purpose: preset.name,
-    });
-    // Day sheet remains open to show the new trip immediately.
+    }));
   }
 
   function openEntry(type: "drive" | "fuel", date = dateKey(selectedDate)) {
@@ -69,31 +126,30 @@ export function useTracker() {
 
   function editEntry(entry: Entry) {
     setDayOpen(false);
-    setEditor(
-      entry.type === "drive"
-        ? { type: "drive", entry }
-        : { type: "fuel", entry },
-    );
+    setEditor(entry.type === "drive" ? { type: "drive", entry } : { type: "fuel", entry });
   }
 
-  function deleteEntry() {
+  async function deleteEntry() {
     if (!pendingDelete) return;
-    setEntries((current) =>
-      current.filter((entry) => entry.id !== pendingDelete.id),
-    );
-    setPendingDelete(null);
+    if (await commit(() => deleteRemoteEntry(pendingDelete.id))) setPendingDelete(null);
   }
 
-  function savePreset(preset: TripPreset) {
-    setPresets((current) =>
-      current.some((item) => item.id === preset.id)
-        ? current.map((item) => (item.id === preset.id ? preset : item))
-        : [...current, preset],
-    );
+  async function savePreset(preset: TripPreset) {
+    await commit(() => saveRemotePreset(preset));
   }
 
-  function deletePreset(id: string) {
-    setPresets((current) => current.filter((item) => item.id !== id));
+  async function deletePreset(id: string) {
+    await commit(() => deleteRemotePreset(id));
+  }
+
+  async function saveFallbackPrice(price: number): Promise<boolean> {
+    return commit(() => saveRemotePrice(price));
+  }
+
+  async function importFromBrowser(): Promise<boolean> {
+    const succeeded = await commit(importLegacyData);
+    if (succeeded) setLegacy(legacyImportCounts());
+    return succeeded;
   }
 
   function showDay(date: Date) {
@@ -109,11 +165,11 @@ export function useTracker() {
   return {
     entries, presets, fallbackPrice, currentUser, calendarMonth,
     selectedDate, dayOpen, editor, presetsOpen, settingsOpen,
-    pendingDelete, period, activityFilter,
-    setFallbackPrice, setCurrentUser, setCalendarMonth, setSelectedDate,
-    setDayOpen, setEditor, setPresetsOpen, setSettingsOpen,
-    setPendingDelete, setPeriod, setActivityFilter,
+    pendingDelete, period, activityFilter, loading, ready, error, legacy,
+    setCalendarMonth, setSelectedDate, setDayOpen, setEditor,
+    setPresetsOpen, setSettingsOpen, setPendingDelete, setPeriod, setActivityFilter,
     saveEntry, quickAdd, openEntry, editEntry, deleteEntry,
-    savePreset, deletePreset, showDay, openPresetsFromDay,
+    savePreset, deletePreset, saveFallbackPrice, importFromBrowser, refresh,
+    showDay, openPresetsFromDay,
   };
 }

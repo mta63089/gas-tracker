@@ -1,5 +1,5 @@
-import { TrackerDashboard } from "./features/tracker/tracker-dashboard";
+import { AuthGate } from "./features/auth/auth-gate";
 
 export default function App() {
-  return <TrackerDashboard />;
+  return <AuthGate />;
 }

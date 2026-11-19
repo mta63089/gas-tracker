@@ -1,5 +1,7 @@
 import { PresetManager } from './preset-manager';
-import { dateKey, type FuelEntry } from '../../lib/tracker';
+import { Button } from '#components/ui/button';
+import { LegacyImport } from './legacy-import';
+import { dateKey, type FuelEntry, type Member } from '../../lib/tracker';
 import {
   selectDayCounts,
   selectMemberStats,
@@ -18,8 +20,10 @@ import {
 } from './tracker-dialogs';
 
 /** Composes the tracker UI while useTracker owns state and mutations. */
-export function TrackerDashboard() {
-  const tracker = useTracker();
+type Props = { member: Member; onSignOut: () => void };
+
+export function TrackerDashboard({ member, onSignOut }: Props) {
+  const tracker = useTracker(member);
   const {
     entries, presets, fallbackPrice, currentUser, calendarMonth,
     selectedDate, dayOpen, editor, presetsOpen, settingsOpen,
@@ -44,13 +48,24 @@ export function TrackerDashboard() {
     <div className='min-h-screen bg-background text-foreground'>
       <AppHeader
         currentUser={currentUser}
-        onUserChange={tracker.setCurrentUser}
         onOpenPresets={() => tracker.setPresetsOpen(true)}
         onOpenSettings={() => tracker.setSettingsOpen(true)}
+        onSignOut={onSignOut}
       />
 
       <main className='mx-auto max-w-6xl space-y-7 px-4 py-6 sm:px-6'>
-        <CalendarOverview
+        {tracker.error && (
+          <div role='alert' className='flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4'>
+            <p className='text-sm text-foreground'>{tracker.error}</p>
+            <Button variant='outline' size='sm' onClick={() => void tracker.refresh().catch(() => {})}>Refresh data</Button>
+          </div>
+        )}
+        {!tracker.ready ? (
+          <p className='py-10 text-center text-sm text-muted-foreground'>{tracker.error ? 'Unable to load shared records. Use Refresh data above.' : 'Loading shared records...'}</p>
+        ) : (
+          <>
+            <LegacyImport counts={tracker.legacy} onImport={tracker.importFromBrowser} />
+            <CalendarOverview
           month={calendarMonth}
           selectedDate={selectedDate}
           dayCounts={dayCounts}
@@ -74,9 +89,11 @@ export function TrackerDashboard() {
           onEdit={tracker.editEntry}
           onDelete={tracker.setPendingDelete}
         />
+          </>
+        )}
       </main>
 
-      <DaySheet
+      {tracker.ready && <DaySheet
         open={dayOpen}
         onOpenChange={tracker.setDayOpen}
         date={selectedDate}
@@ -90,39 +107,39 @@ export function TrackerDashboard() {
         onAddFuel={() => tracker.openEntry('fuel')}
         onEdit={tracker.editEntry}
         onDelete={tracker.setPendingDelete}
-      />
+      />}
 
-      <EntryDialog
+      {tracker.ready && <EntryDialog
         editor={editor}
         currentUser={currentUser}
         purchases={allPurchases}
         fallbackPrice={fallbackPrice}
         onOpenChange={(open) => { if (!open) tracker.setEditor(null); }}
         onSave={tracker.saveEntry}
-      />
+      />}
 
-      <PresetManager
+      {tracker.ready && <PresetManager
         open={presetsOpen}
         onOpenChange={tracker.setPresetsOpen}
         presets={presets}
         onSave={tracker.savePreset}
         onDelete={tracker.deletePreset}
-      />
+      />}
 
-      {settingsOpen && (
+      {tracker.ready && settingsOpen && (
         <SettingsDialog
           open={settingsOpen}
           fallbackPrice={fallbackPrice}
           onOpenChange={tracker.setSettingsOpen}
-          onSave={tracker.setFallbackPrice}
+          onSave={tracker.saveFallbackPrice}
         />
       )}
 
-      <DeleteEntryDialog
+      {tracker.ready && <DeleteEntryDialog
         entry={pendingDelete}
         onOpenChange={(open) => { if (!open) tracker.setPendingDelete(null); }}
         onConfirm={tracker.deleteEntry}
-      />
+      />}
     </div>
   );
 }
