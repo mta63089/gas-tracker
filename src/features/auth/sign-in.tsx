@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/incompatible-library */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -40,31 +39,59 @@ export function SignIn() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="items-center text-center">
-          <img src="/logo.png" alt="" className="size-16 object-contain" />
-          <CardTitle className="font-title text-4xl">Gas Tracker</CardTitle>
-          <p className="text-sm text-muted-foreground">Sign in to your shared vehicle log.</p>
+    <main className='flex min-h-screen items-center justify-center bg-background px-4 text-foreground'>
+      <Card className='w-full max-w-sm'>
+        <CardHeader className='items-center text-center'>
+          <img src='/logo.png' alt='' className='size-16 object-contain' />
+          <CardTitle className='font-title text-4xl'>Gas Tracker</CardTitle>
+          <p className='text-sm text-muted-foreground'>
+            Sign in to your shared vehicle log.
+          </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
-            <Controller name="email" control={form.control} render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="sign-in-email">Email</FieldLabel>
-                <Input {...field} id="sign-in-email" type="email" autoComplete="email" />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )} />
-            <Controller name="password" control={form.control} render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="sign-in-password">Password</FieldLabel>
-                <Input {...field} id="sign-in-password" type="password" autoComplete="current-password" />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )} />
-            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={submitting} className="w-full">
+          <form onSubmit={form.handleSubmit(submit)} className='space-y-4'>
+            <Controller
+              name='email'
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor='sign-in-email'>Email</FieldLabel>
+                  <Input
+                    {...field}
+                    id='sign-in-email'
+                    type='email'
+                    autoComplete='email'
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+            <Controller
+              name='password'
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor='sign-in-password'>Password</FieldLabel>
+                  <Input
+                    {...field}
+                    id='sign-in-password'
+                    type='password'
+                    autoComplete='current-password'
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+            {error && (
+              <p role='alert' className='text-sm text-destructive'>
+                {error}
+              </p>
+            )}
+            <Button type='submit' disabled={submitting} className='w-full'>
               {submitting ? "Signing in..." : "Sign in"}
             </Button>
           </form>

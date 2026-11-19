@@ -10,7 +10,6 @@ import {
   type TripPreset,
 } from "../../lib/tracker";
 import type { EditorState } from "./entry-form";
-import type { ActivityFilter, Period } from "./selectors";
 import {
   deleteRemoteEntry,
   deleteRemotePreset,
@@ -21,9 +20,12 @@ import {
   saveRemotePreset,
   saveRemotePrice,
 } from "./remote-store";
+import type { ActivityFilter, Period } from "./selectors";
 
 function errorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : "Could not save changes to Supabase.";
+  return cause instanceof Error
+    ? cause.message
+    : "Could not save changes to Supabase.";
 }
 
 /** Shared cloud data and local-only UI state. No persistence writes in an effect. */
@@ -38,7 +40,9 @@ export function useTracker(currentUser: Member) {
   const requestNumber = useRef(0);
   const active = useRef(true);
 
-  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    startOfMonth(new Date()),
+  );
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dayOpen, setDayOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState | null>(null);
@@ -74,13 +78,29 @@ export function useTracker(currentUser: Member) {
 
     // Subscribe to changes from the other device. Refetch instead of applying
     // individual events so all clients use the same mapping and calculations.
-    const channel = supabase.channel("gas-tracker-data")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tracker_entries" },
-        () => { void refresh().catch(() => {}); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "tracker_presets" },
-        () => { void refresh().catch(() => {}); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "tracker_settings" },
-        () => { void refresh().catch(() => {}); })
+    const channel = supabase
+      .channel("gas-tracker-data")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tracker_entries" },
+        () => {
+          void refresh().catch(() => {});
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tracker_presets" },
+        () => {
+          void refresh().catch(() => {});
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tracker_settings" },
+        () => {
+          void refresh().catch(() => {});
+        },
+      )
       .subscribe();
 
     return () => {
@@ -107,16 +127,18 @@ export function useTracker(currentUser: Member) {
   }
 
   async function quickAdd(preset: TripPreset) {
-    await commit(() => saveRemoteEntry({
-      id: crypto.randomUUID(),
-      date: dateKey(selectedDate),
-      createdAt: new Date().toISOString(),
-      createdBy: currentUser,
-      type: "drive",
-      driver: preset.defaultDriver ?? currentUser,
-      miles: preset.miles,
-      purpose: preset.name,
-    }));
+    await commit(() =>
+      saveRemoteEntry({
+        id: crypto.randomUUID(),
+        date: dateKey(selectedDate),
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser,
+        type: "drive",
+        driver: preset.defaultDriver ?? currentUser,
+        miles: preset.miles,
+        purpose: preset.name,
+      }),
+    );
   }
 
   function openEntry(type: "drive" | "fuel", date = dateKey(selectedDate)) {
@@ -126,12 +148,17 @@ export function useTracker(currentUser: Member) {
 
   function editEntry(entry: Entry) {
     setDayOpen(false);
-    setEditor(entry.type === "drive" ? { type: "drive", entry } : { type: "fuel", entry });
+    setEditor(
+      entry.type === "drive"
+        ? { type: "drive", entry }
+        : { type: "fuel", entry },
+    );
   }
 
   async function deleteEntry() {
     if (!pendingDelete) return;
-    if (await commit(() => deleteRemoteEntry(pendingDelete.id))) setPendingDelete(null);
+    if (await commit(() => deleteRemoteEntry(pendingDelete.id)))
+      setPendingDelete(null);
   }
 
   async function savePreset(preset: TripPreset) {
@@ -163,13 +190,43 @@ export function useTracker(currentUser: Member) {
   }
 
   return {
-    entries, presets, fallbackPrice, currentUser, calendarMonth,
-    selectedDate, dayOpen, editor, presetsOpen, settingsOpen,
-    pendingDelete, period, activityFilter, loading, ready, error, legacy,
-    setCalendarMonth, setSelectedDate, setDayOpen, setEditor,
-    setPresetsOpen, setSettingsOpen, setPendingDelete, setPeriod, setActivityFilter,
-    saveEntry, quickAdd, openEntry, editEntry, deleteEntry,
-    savePreset, deletePreset, saveFallbackPrice, importFromBrowser, refresh,
-    showDay, openPresetsFromDay,
+    entries,
+    presets,
+    fallbackPrice,
+    currentUser,
+    calendarMonth,
+    selectedDate,
+    dayOpen,
+    editor,
+    presetsOpen,
+    settingsOpen,
+    pendingDelete,
+    period,
+    activityFilter,
+    loading,
+    ready,
+    error,
+    legacy,
+    setCalendarMonth,
+    setSelectedDate,
+    setDayOpen,
+    setEditor,
+    setPresetsOpen,
+    setSettingsOpen,
+    setPendingDelete,
+    setPeriod,
+    setActivityFilter,
+    saveEntry,
+    quickAdd,
+    openEntry,
+    editEntry,
+    deleteEntry,
+    savePreset,
+    deletePreset,
+    saveFallbackPrice,
+    importFromBrowser,
+    refresh,
+    showDay,
+    openPresetsFromDay,
   };
 }

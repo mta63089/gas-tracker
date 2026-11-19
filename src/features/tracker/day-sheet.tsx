@@ -1,10 +1,19 @@
-import { format } from 'date-fns';
-import { Button } from '#components/ui/button';
+import { Button } from "#components/ui/button";
 import {
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
-} from '#components/ui/sheet';
-import { number, type Entry, type FuelEntry, type TripPreset } from '../../lib/tracker';
-import { ActivityRow } from './activity-row';
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "#components/ui/sheet";
+import { format } from "date-fns";
+import {
+  number,
+  type Entry,
+  type FuelEntry,
+  type TripPreset,
+} from "../../lib/tracker";
+import { ActivityRow } from "./activity-row";
 
 type Props = {
   open: boolean;
@@ -23,15 +32,27 @@ type Props = {
 };
 
 export function DaySheet({
-  open, onOpenChange, date, entries, presets, purchases,
-  fallbackPrice, onQuickAdd, onManagePresets, onAddTrip, onAddFuel,
-  onEdit, onDelete,
+  open,
+  onOpenChange,
+  date,
+  entries,
+  presets,
+  purchases,
+  fallbackPrice,
+  onQuickAdd,
+  onManagePresets,
+  onAddTrip,
+  onAddFuel,
+  onEdit,
+  onDelete,
 }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className='w-full overflow-y-auto sm:max-w-md'>
         <SheetHeader>
-          <SheetTitle className='text-lg'>{format(date, 'EEEE, MMMM d')}</SheetTitle>
+          <SheetTitle className='text-lg'>
+            {format(date, "EEEE, MMMM d")}
+          </SheetTitle>
           <SheetDescription>
             Log a trip with one tap or add a custom entry.
           </SheetDescription>
@@ -46,7 +67,8 @@ export function DaySheet({
             </div>
             {presets.length === 0 ? (
               <p className='rounded-lg border border-dashed p-4 text-sm text-muted-foreground'>
-                No regular trips yet. Create a preset for the grocery store or work commute.
+                No regular trips yet. Create a preset for the grocery store or
+                work commute.
               </p>
             ) : (
               <div className='grid gap-2'>
@@ -57,7 +79,9 @@ export function DaySheet({
                     className='h-auto min-h-14 justify-between gap-3 px-3 py-2 text-left'
                     onClick={() => onQuickAdd(preset)}
                   >
-                    <span className='min-w-0 whitespace-normal font-medium'>{preset.name}</span>
+                    <span className='min-w-0 whitespace-normal font-medium'>
+                      {preset.name}
+                    </span>
                     <span className='shrink-0 text-xs text-muted-foreground'>
                       + {number(preset.miles, 1)} mi
                     </span>
@@ -66,24 +90,34 @@ export function DaySheet({
               </div>
             )}
             <div className='grid grid-cols-2 gap-2 pt-1'>
-              <Button variant='outline' onClick={onAddTrip}>Custom trip</Button>
-              <Button variant='outline' onClick={onAddFuel}>Gas purchase</Button>
+              <Button variant='outline' onClick={onAddTrip}>
+                Custom trip
+              </Button>
+              <Button variant='outline' onClick={onAddFuel}>
+                Gas purchase
+              </Button>
             </div>
           </section>
           <section>
-            <h3 className='mb-2 font-semibold'>Logged that day ({entries.length})</h3>
+            <h3 className='mb-2 font-semibold'>
+              Logged that day ({entries.length})
+            </h3>
             {entries.length === 0 ? (
-              <p className='text-sm text-muted-foreground'>No activity recorded.</p>
-            ) : entries.map((entry) => (
-              <ActivityRow
-                key={entry.id}
-                entry={entry}
-                purchases={purchases}
-                fallbackPrice={fallbackPrice}
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
-            ))}
+              <p className='text-sm text-muted-foreground'>
+                No activity recorded.
+              </p>
+            ) : (
+              entries.map((entry) => (
+                <ActivityRow
+                  key={entry.id}
+                  entry={entry}
+                  purchases={purchases}
+                  fallbackPrice={fallbackPrice}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))
+            )}
           </section>
         </div>
       </SheetContent>

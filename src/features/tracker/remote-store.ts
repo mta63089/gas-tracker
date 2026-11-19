@@ -112,7 +112,11 @@ export async function fetchTrackerSnapshot() {
   const [entries, presetsResult, settingsResult] = await Promise.all([
     listEntries(),
     supabase.from("tracker_presets").select("*"),
-    supabase.from("tracker_settings").select("fallback_price").eq("id", 1).single(),
+    supabase
+      .from("tracker_settings")
+      .select("fallback_price")
+      .eq("id", 1)
+      .single(),
   ]);
 
   if (presetsResult.error) throw presetsResult.error;
@@ -121,27 +125,39 @@ export async function fetchTrackerSnapshot() {
   return {
     entries,
     presets: ((presetsResult.data ?? []) as PresetRow[]).map(toPreset),
-    fallbackPrice: Number(settingsResult.data?.fallback_price ?? DEFAULT_FALLBACK_PRICE),
+    fallbackPrice: Number(
+      settingsResult.data?.fallback_price ?? DEFAULT_FALLBACK_PRICE,
+    ),
   };
 }
 
 export async function saveRemoteEntry(entry: Entry): Promise<void> {
-  const { error } = await supabase.from("tracker_entries").upsert(fromEntry(entry));
+  const { error } = await supabase
+    .from("tracker_entries")
+    .upsert(fromEntry(entry));
   if (error) throw error;
 }
 
 export async function deleteRemoteEntry(id: string): Promise<void> {
-  const { error } = await supabase.from("tracker_entries").delete().eq("id", id);
+  const { error } = await supabase
+    .from("tracker_entries")
+    .delete()
+    .eq("id", id);
   if (error) throw error;
 }
 
 export async function saveRemotePreset(preset: TripPreset): Promise<void> {
-  const { error } = await supabase.from("tracker_presets").upsert(fromPreset(preset));
+  const { error } = await supabase
+    .from("tracker_presets")
+    .upsert(fromPreset(preset));
   if (error) throw error;
 }
 
 export async function deleteRemotePreset(id: string): Promise<void> {
-  const { error } = await supabase.from("tracker_presets").delete().eq("id", id);
+  const { error } = await supabase
+    .from("tracker_presets")
+    .delete()
+    .eq("id", id);
   if (error) throw error;
 }
 
@@ -170,13 +186,21 @@ export async function importLegacyData(): Promise<void> {
   const entries = loadEntries();
   const presets = loadPresets();
   for (let i = 0; i < entries.length; i += PAGE_SIZE) {
-    const { error } = await supabase.from("tracker_entries")
-      .upsert(entries.slice(i, i + PAGE_SIZE).map(fromEntry), { onConflict: "id", ignoreDuplicates: true });
+    const { error } = await supabase
+      .from("tracker_entries")
+      .upsert(entries.slice(i, i + PAGE_SIZE).map(fromEntry), {
+        onConflict: "id",
+        ignoreDuplicates: true,
+      });
     if (error) throw error;
   }
   for (let i = 0; i < presets.length; i += PAGE_SIZE) {
-    const { error } = await supabase.from("tracker_presets")
-      .upsert(presets.slice(i, i + PAGE_SIZE).map(fromPreset), { onConflict: "id", ignoreDuplicates: true });
+    const { error } = await supabase
+      .from("tracker_presets")
+      .upsert(presets.slice(i, i + PAGE_SIZE).map(fromPreset), {
+        onConflict: "id",
+        ignoreDuplicates: true,
+      });
     if (error) throw error;
   }
   // Keep the original localStorage backup; it is never deleted automatically.

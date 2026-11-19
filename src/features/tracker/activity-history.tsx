@@ -1,10 +1,14 @@
-import { Card, CardContent } from '#components/ui/card';
+import { Card, CardContent } from "#components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '#components/ui/select';
-import type { Entry, FuelEntry } from '../../lib/tracker';
-import type { ActivityFilter } from './selectors';
-import { ActivityRow } from './activity-row';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "#components/ui/select";
+import type { Entry, FuelEntry } from "../../lib/tracker";
+import { ActivityRow } from "./activity-row";
+import type { ActivityFilter } from "./selectors";
 
 type Props = {
   entries: Entry[];
@@ -17,7 +21,13 @@ type Props = {
 };
 
 export function ActivityHistory({
-  entries, purchases, fallbackPrice, filter, onFilterChange, onEdit, onDelete,
+  entries,
+  purchases,
+  fallbackPrice,
+  filter,
+  onFilterChange,
+  onEdit,
+  onDelete,
 }: Props) {
   return (
     <section className='space-y-3 pb-12'>
@@ -26,7 +36,7 @@ export function ActivityHistory({
         <Select
           value={filter}
           onValueChange={(value) => {
-            if (value === 'all' || value === 'drive' || value === 'fuel') {
+            if (value === "all" || value === "drive" || value === "fuel") {
               onFilterChange(value);
             }
           }}
@@ -47,16 +57,18 @@ export function ActivityHistory({
             <p className='py-12 text-center text-sm text-muted-foreground'>
               No entries for this filter.
             </p>
-          ) : entries.map((entry) => (
-            <ActivityRow
-              key={entry.id}
-              entry={entry}
-              purchases={purchases}
-              fallbackPrice={fallbackPrice}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))}
+          ) : (
+            entries.map((entry) => (
+              <ActivityRow
+                key={entry.id}
+                entry={entry}
+                purchases={purchases}
+                fallbackPrice={fallbackPrice}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))
+          )}
         </CardContent>
       </Card>
     </section>
