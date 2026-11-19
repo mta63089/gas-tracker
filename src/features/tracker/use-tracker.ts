@@ -105,7 +105,6 @@ export function useTracker(currentUser: Member) {
 
     return () => {
       active.current = false;
-      requestNumber.current++;
       void supabase.removeChannel(channel);
     };
   }, [refresh]);
